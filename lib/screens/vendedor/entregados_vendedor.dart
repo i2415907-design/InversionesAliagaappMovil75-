@@ -16,10 +16,15 @@ class PedidosEntregadosVendedorPage extends StatefulWidget {
 
 class _PedidosEntregadosVendedorPageState extends State<PedidosEntregadosVendedorPage> {
   final VendedorService _vendedorService = VendedorService();
+<<<<<<< HEAD
   List<PedidoModel> _allEntregados = [];
   List<PedidoModel> _filteredEntregados = [];
   bool _isLoading = true;
   final TextEditingController _searchController = TextEditingController();
+=======
+  List<PedidoModel> _entregados = [];
+  bool _isLoading = true;
+>>>>>>> dddc990b80e0a83af69df2a0010bbb1860f4df54
 
   @override
   void initState() {
@@ -32,14 +37,20 @@ class _PedidosEntregadosVendedorPageState extends State<PedidosEntregadosVendedo
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('auth_token') ?? '';
     final lista = await _vendedorService.getPedidosEntregados(token);
+<<<<<<< HEAD
     
     setState(() {
       _allEntregados = lista;
       _filteredEntregados = lista;
+=======
+    setState(() {
+      _entregados = lista;
+>>>>>>> dddc990b80e0a83af69df2a0010bbb1860f4df54
       _isLoading = false;
     });
   }
 
+<<<<<<< HEAD
   void _filterPedidos(String query) {
     setState(() {
       _filteredEntregados = _allEntregados.where((p) {
@@ -53,6 +64,8 @@ class _PedidosEntregadosVendedorPageState extends State<PedidosEntregadosVendedo
     });
   }
 
+=======
+>>>>>>> dddc990b80e0a83af69df2a0010bbb1860f4df54
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,6 +77,7 @@ class _PedidosEntregadosVendedorPageState extends State<PedidosEntregadosVendedo
               title: "Historial de entregas",
               subtitle: "Entregas completadas",
             ),
+<<<<<<< HEAD
             _buildSearchBar(),
             Expanded(
               child: _isLoading
@@ -85,6 +99,17 @@ class _PedidosEntregadosVendedorPageState extends State<PedidosEntregadosVendedo
                         itemCount: _filteredEntregados.length,
                         itemBuilder: (context, index) => _CardEntregaExito(pedido: _filteredEntregados[index]),
                       ),
+=======
+            Expanded(
+              child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: AppTheme.accent))
+                : _entregados.isEmpty
+                  ? Center(child: Text("Aún no tienes entregas registradas", style: AppTheme.body.copyWith(color: AppTheme.textMuted)))
+                  : ListView.builder(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      itemCount: _entregados.length,
+                      itemBuilder: (context, index) => _CardEntregaExito(pedido: _entregados[index]),
+>>>>>>> dddc990b80e0a83af69df2a0010bbb1860f4df54
                     ),
             ),
           ],
@@ -92,6 +117,7 @@ class _PedidosEntregadosVendedorPageState extends State<PedidosEntregadosVendedo
       ),
     );
   }
+<<<<<<< HEAD
 
   Widget _buildSearchBar() {
     return Padding(
@@ -124,6 +150,8 @@ class _PedidosEntregadosVendedorPageState extends State<PedidosEntregadosVendedo
       ),
     );
   }
+=======
+>>>>>>> dddc990b80e0a83af69df2a0010bbb1860f4df54
 }
 
 class _CardEntregaExito extends StatefulWidget {
@@ -140,7 +168,12 @@ class _CardEntregaExitoState extends State<_CardEntregaExito> {
   @override
   Widget build(BuildContext context) {
     final p = widget.pedido;
+<<<<<<< HEAD
     final double calificacion = double.tryParse(p.calificacion ?? '0') ?? 0;
+=======
+    // Asumimos que los datos de reseña vienen en el JSON (puedes ajustar los nombres según tu API)
+final double calificacion = double.tryParse(p.calificacion ?? '0') ?? 0;
+>>>>>>> dddc990b80e0a83af69df2a0010bbb1860f4df54
     final String comentario = p.comentario ?? "Sin comentarios del cliente";
     final String urlFotoEvidencia = p.fotoEvidencia ?? "";
 
@@ -158,8 +191,12 @@ class _CardEntregaExitoState extends State<_CardEntregaExito> {
           ListTile(
             onTap: () => setState(() => _isExpanded = !_isExpanded),
             leading: Icon(Icons.check_circle_rounded, color: AppTheme.accent, size: 28),
+<<<<<<< HEAD
             title: Text("Pedido #${p.idPedido}", style: AppTheme.body.copyWith(fontWeight: FontWeight.w700)),
             // Corrección aquí también para evitar la advertencia
+=======
+            title: Text("Pedido #${p.idPedido}", style: AppTheme.body.copyWith(fontWeight: FontWeight.w500)),
+>>>>>>> dddc990b80e0a83af69df2a0010bbb1860f4df54
             subtitle: Text(p.cliente?.nombreCliente ?? "Cliente", style: AppTheme.caption),
             trailing: Row(
               mainAxisSize: MainAxisSize.min,
@@ -183,6 +220,7 @@ class _CardEntregaExitoState extends State<_CardEntregaExito> {
                   if (urlFotoEvidencia.isNotEmpty)
                     ClipRRect(
                       borderRadius: BorderRadius.circular(12),
+<<<<<<< HEAD
                       child: Image.network(
                         urlFotoEvidencia, 
                         height: 150, 
@@ -194,6 +232,9 @@ class _CardEntregaExitoState extends State<_CardEntregaExito> {
                           child: const Center(child: Icon(Icons.broken_image, color: Colors.grey)),
                         ),
                       ),
+=======
+                      child: Image.network(urlFotoEvidencia, height: 150, width: double.infinity, fit: BoxFit.cover),
+>>>>>>> dddc990b80e0a83af69df2a0010bbb1860f4df54
                     ),
                   const SizedBox(height: 14),
                   Text("RESEÑA DEL CLIENTE:", style: AppTheme.caption.copyWith(color: AppTheme.accentAmber, fontWeight: FontWeight.w600)),
