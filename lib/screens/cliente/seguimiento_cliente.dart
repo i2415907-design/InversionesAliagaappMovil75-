@@ -7,7 +7,7 @@ import 'package:rutasinversionesaliaga/models/detalle_producto_model.dart';
 import 'package:rutasinversionesaliaga/utils/app_theme.dart';
 
 class SeguimientoPedidoPage extends StatefulWidget {
-  final int pedido_id;
+  final int pedido_id; // Se mantiene el nombre original
   const SeguimientoPedidoPage({super.key, required this.pedido_id});
 
   @override
@@ -15,17 +15,17 @@ class SeguimientoPedidoPage extends StatefulWidget {
 }
 
 class _SeguimientoPedidoPageState extends State<SeguimientoPedidoPage> {
-  PedidoModel? pedidoCurso;
+  List<PedidoModel> pedidosEnCurso = []; // Cambiado a Lista
   bool _isLoading = true;
   String? _errorMessage;
 
   @override
   void initState() {
     super.initState();
-    _cargarPedidoEnCamino();
+    _cargarPedidosEnCamino();
   }
 
-  Future<void> _cargarPedidoEnCamino() async {
+  Future<void> _cargarPedidosEnCamino() async {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token') ?? '';
@@ -37,12 +37,20 @@ class _SeguimientoPedidoPageState extends State<SeguimientoPedidoPage> {
 
       if (!mounted) return;
 
-      if (response.statusCode == 200) {
-        setState(() {
-          pedidoCurso = PedidoModel.fromJson(response.data);
-          _isLoading = false;
-        });
-      }
+if (response.statusCode == 200) {
+  setState(() {
+    if (response.data is List) {
+      // Si recibimos la lista directamente
+      pedidosEnCurso = (response.data as List)
+          .map((json) => PedidoModel.fromJson(json))
+          .toList();
+    } else if (response.data is Map && response.data.containsKey('id_pedido')) {
+      // Por si el servidor solo manda un objeto (compatibilidad)
+      pedidosEnCurso = [PedidoModel.fromJson(response.data)];
+    }
+    _isLoading = false;
+  });
+}
     } on DioException catch (e) {
       if (!mounted) return;
       setState(() {
@@ -62,6 +70,12 @@ class _SeguimientoPedidoPageState extends State<SeguimientoPedidoPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppTheme.primary,
+      appBar: AppBar(
+        title: const Text("SEGUIMIENTO", style: TextStyle(letterSpacing: 2, fontWeight: FontWeight.bold)),
+        backgroundColor: Colors.transparent,
+        elevation: 0,
+        centerTitle: true,
+      ),
       body: SafeArea(
         child: _buildBody(),
       ),
@@ -73,92 +87,74 @@ class _SeguimientoPedidoPageState extends State<SeguimientoPedidoPage> {
       return const Center(child: CircularProgressIndicator(color: AppTheme.accent));
     }
 
-    if (_errorMessage != null || pedidoCurso == null) {
+    if (_errorMessage != null || pedidosEnCurso.isEmpty) {
       return _buildErrorState();
     }
 
-    final primerProducto = pedidoCurso!.detalles.isNotEmpty 
-        ? pedidoCurso!.detalles.first 
-        : DetalleProducto(nombre: "Pedido General", imagen: "", cantidad: 1, precio: "0");
-
-    return Column(
-      children: [
-        const SizedBox(height: 40),
-        _buildHeader(),
-        const SizedBox(height: 30),
-        
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 22),
-          child: Container(
-            padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
-            decoration: AppTheme.cardDecoration(radius: 24),
-            child: Column(
-              children: [
-                // Número de Pedido
-                Text(
-                  "ORDEN #00${pedidoCurso!.idPedido}",
-                  style: TextStyle(
-                    color: Colors.white.withOpacity(0.5),
-                    fontSize: 14,
-                    fontWeight: FontWeight.w600,
-                    letterSpacing: 1.2,
-                  ),
-                ),
-                const SizedBox(height: 25),
-                
-                // Imagen del Producto Principal
-                _buildProductPreview(primerProducto.imagen),
-
-                const SizedBox(height: 20),
-
-                // NOMBRE DEL PRODUCTO (Lo que pediste)
-                Text(
-                  primerProducto.nombre.toUpperCase(),
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    letterSpacing: 0.5,
-                  ),
-                ),
-                
-                // Si hay más productos, mostramos un indicador
-                if (pedidoCurso!.detalles.length > 1)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 5),
-                    child: Text(
-                      "y ${pedidoCurso!.detalles.length - 1} producto(s) más",
-                      style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
-                    ),
-                  ),
-
-                const SizedBox(height: 25),
-                
-                // Badge de Estado
-                _buildStatusBadge(pedidoCurso!.estado),
-
-                const SizedBox(height: 30),
-
-                // Botón de Acción Principal
-                _buildMapButton(),
-              ],
-            ),
-          ),
-        ),
-        
-        const Spacer(),
-        _buildFooterInfo(),
-        const SizedBox(height: 20),
-      ],
+    // Ahora usamos un ListView para mostrar todos los pedidos que vengan en la lista
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(vertical: 20),
+      itemCount: pedidosEnCurso.length,
+      itemBuilder: (context, index) {
+        final pedido = pedidosEnCurso[index];
+        return _buildPedidoCard(pedido);
+      },
     );
   }
 
-  // --- WIDGETS DE SOPORTE PARA ESTRUCTURA LIMPIA ---
+  Widget _buildPedidoCard(PedidoModel pedido) {
+    final primerProducto = pedido.detalles.isNotEmpty 
+        ? pedido.detalles.first 
+        : DetalleProducto(nombre: "Pedido General", imagen: "", cantidad: 1, precio: "0");
 
-  Widget _buildHeader() {
-    return Text("SEGUIMIENTO", style: AppTheme.titleLarge.copyWith(letterSpacing: 2));
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 10),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 28, horizontal: 20),
+        decoration: AppTheme.cardDecoration(radius: 24),
+        child: Column(
+          children: [
+            Text(
+              "ORDEN #00${pedido.idPedido}",
+              style: TextStyle(
+                color: Colors.white.withOpacity(0.5),
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                letterSpacing: 1.2,
+              ),
+            ),
+            const SizedBox(height: 25),
+            _buildProductPreview(primerProducto.imagen),
+            const SizedBox(height: 20),
+            Text(
+              primerProducto.nombre.toUpperCase(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                letterSpacing: 0.5,
+              ),
+            ),
+            if (pedido.detalles.length > 1)
+              Padding(
+                padding: const EdgeInsets.only(top: 5),
+                child: Text(
+                  "y ${pedido.detalles.length - 1} producto(s) más",
+                  style: TextStyle(color: Colors.white.withOpacity(0.4), fontSize: 12),
+                ),
+              ),
+            const SizedBox(height: 25),
+            _buildStatusBadge(pedido.estado),
+            const SizedBox(height: 30),
+            _buildMapButton(pedido.idPedido),
+          ],
+        ),
+      ),
+    );
   }
+
+  // --- WIDGETS DE SOPORTE ---
 
   Widget _buildStatusBadge(String estado) {
     return Container(
@@ -181,7 +177,7 @@ class _SeguimientoPedidoPageState extends State<SeguimientoPedidoPage> {
     );
   }
 
-  Widget _buildMapButton() {
+  Widget _buildMapButton(int idPedido) {
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
@@ -194,7 +190,7 @@ class _SeguimientoPedidoPageState extends State<SeguimientoPedidoPage> {
         ],
       ),
       child: ElevatedButton(
-        onPressed: () => context.push("/Seguimiento_mapa", extra: pedidoCurso!.idPedido),
+        onPressed: () => context.push("/Seguimiento_mapa", extra: idPedido),
         style: ElevatedButton.styleFrom(
           backgroundColor: AppTheme.accent,
           minimumSize: const Size(double.infinity, 52),
@@ -208,11 +204,7 @@ class _SeguimientoPedidoPageState extends State<SeguimientoPedidoPage> {
             SizedBox(width: 10),
             Text(
               "RASTREAR EN MAPA",
-              style: TextStyle(
-                color: Colors.white, 
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16),
             ),
           ],
         ),
@@ -237,20 +229,6 @@ class _SeguimientoPedidoPageState extends State<SeguimientoPedidoPage> {
     );
   }
 
-  Widget _buildFooterInfo() {
-    return Column(
-      children: [
-        Icon(Icons.sensors_rounded, color: AppTheme.textHint, size: 28),
-        const SizedBox(height: 8),
-        Text(
-          "ACTUALIZANDO POSICIÓN\nEN TIEMPO REAL",
-          textAlign: TextAlign.center,
-          style: AppTheme.caption.copyWith(color: AppTheme.textHint),
-        ),
-      ],
-    );
-  }
-
   Widget _buildErrorState() {
     return Center(
       child: Column(
@@ -258,7 +236,8 @@ class _SeguimientoPedidoPageState extends State<SeguimientoPedidoPage> {
         children: [
           Icon(Icons.shopping_bag_outlined, size: 72, color: AppTheme.textHint),
           const SizedBox(height: 20),
-          Text(_errorMessage ?? "NO HAY PEDIDOS ACTIVOS", style: AppTheme.body.copyWith(color: AppTheme.textMuted)),
+          Text(_errorMessage ?? "NO HAY PEDIDOS ACTIVOS", 
+               style: const TextStyle(color: Colors.white70, fontSize: 16)),
           const SizedBox(height: 24),
           TextButton.icon(
             onPressed: () => context.go('/Pedidos'),
